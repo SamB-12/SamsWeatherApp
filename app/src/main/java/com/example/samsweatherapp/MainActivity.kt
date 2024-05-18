@@ -15,6 +15,7 @@ import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import com.example.samsweatherapp.databinding.ActivityMainBinding
+import com.example.samsweatherapp.utils.NetworkChecker
 import com.google.android.gms.location.CurrentLocationRequest
 import com.google.android.gms.location.FusedLocationProviderClient
 import com.google.android.gms.location.LocationServices
@@ -53,11 +54,6 @@ class MainActivity : AppCompatActivity() {
                 ).withListener(object : MultiplePermissionsListener {
                     override fun onPermissionsChecked(report: MultiplePermissionsReport?) {
                         if (report!!.areAllPermissionsGranted()) {
-                            Toast.makeText(
-                                this@MainActivity,
-                                "All Permissions Granted! Go Ahead",
-                                Toast.LENGTH_SHORT
-                            ).show()
                             requestLocationData()
                         }
 
@@ -141,6 +137,16 @@ class MainActivity : AppCompatActivity() {
         fusedLocationClient.getCurrentLocation(currentLocationRequest, null)
             .addOnSuccessListener { location: Location? ->
                 Log.d("LatLong", "lat = ${location?.latitude}")
+                getWeatherForLocation()
             }
+    }
+
+    private fun getWeatherForLocation(){
+        val networkChecker = NetworkChecker()
+        if (networkChecker.isNetworkAvailable(this)){
+            Toast.makeText(this@MainActivity,"Internet is ready",Toast.LENGTH_SHORT).show()
+        } else {
+            Toast.makeText(this@MainActivity,"No Internet Available",Toast.LENGTH_SHORT).show()
+        }
     }
 }

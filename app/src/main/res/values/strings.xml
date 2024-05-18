@@ -1,3 +1,4 @@
 <resources>
     <string name="app_name">SamsWeatherApp</string>
+    <string name="weather_api_key">350bc10f6b72b5b93d63d4ea000b977c</string>
 </resources>
