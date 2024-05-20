@@ -2,6 +2,7 @@ package com.example.samsweatherapp
 
 import android.Manifest
 import android.annotation.SuppressLint
+import android.app.Dialog
 import android.content.Context
 import android.content.Intent
 import android.location.Location
@@ -40,6 +41,8 @@ class MainActivity : AppCompatActivity() {
     private lateinit var fusedLocationClient: FusedLocationProviderClient //used to get lat and long of the device.
     private var latitude : Double = 0.0
     private var longitude: Double = 0.0
+
+    private var mProgressDialog: Dialog? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -168,9 +171,14 @@ class MainActivity : AppCompatActivity() {
 
             val listCall : Call<WeatherResponse> = service.getWeather(lat = latitude, lon = longitude, appid = Constants.WEATHER_API_KEY, units = Constants.METRIC_UNIT)
 
+            showCustomProgressDialog()
+
             listCall.enqueue(object : Callback<WeatherResponse>{
                 override fun onResponse(p0: Call<WeatherResponse>, response: Response<WeatherResponse>) {
                     if (response.isSuccessful){
+
+                        hideProgressDialog()
+
                         val weatherList : WeatherResponse? = response.body()//this gets the api call's body
                         Log.i("Response Result",weatherList.toString())
                         binding?.tvHello?.text = weatherList?.toString()
@@ -193,6 +201,7 @@ class MainActivity : AppCompatActivity() {
                 }
 
                 override fun onFailure(p0: Call<WeatherResponse>, t: Throwable) {
+                    hideProgressDialog()
                     Log.e("Error", t.message.toString())
                 }
 
@@ -200,5 +209,24 @@ class MainActivity : AppCompatActivity() {
         } else {
             Toast.makeText(this@MainActivity,"No Internet Available",Toast.LENGTH_SHORT).show()
         }
+    }
+
+    /**
+     * This method shows a custom progress dialog.
+     */
+    private fun showCustomProgressDialog(){
+        mProgressDialog = Dialog(this)//dialog object
+        mProgressDialog!!.setContentView(R.layout.dialog_custom_progress) //this sets the screen to be the dialog custom progress
+        mProgressDialog!!.show() //shows the dialog
+    }
+
+    /**
+     * This method dismisses the custom progress dialog.
+     */
+    private fun hideProgressDialog(){
+        if (mProgressDialog != null){
+            mProgressDialog!!.dismiss()
+        }
+
     }
 }
