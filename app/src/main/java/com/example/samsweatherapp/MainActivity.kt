@@ -2,6 +2,7 @@ package com.example.samsweatherapp
 
 import android.Manifest
 import android.annotation.SuppressLint
+import android.app.Dialog
 import android.content.Context
 import android.content.Intent
 import android.location.Location
@@ -15,6 +16,9 @@ import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import com.example.samsweatherapp.databinding.ActivityMainBinding
+import com.example.samsweatherapp.models.WeatherResponse
+import com.example.samsweatherapp.network.WeatherService
+import com.example.samsweatherapp.utils.Constants
 import com.example.samsweatherapp.utils.NetworkChecker
 import com.google.android.gms.location.CurrentLocationRequest
 import com.google.android.gms.location.FusedLocationProviderClient
@@ -25,11 +29,20 @@ import com.karumi.dexter.MultiplePermissionsReport
 import com.karumi.dexter.PermissionToken
 import com.karumi.dexter.listener.PermissionRequest
 import com.karumi.dexter.listener.multi.MultiplePermissionsListener
+import retrofit2.Call
+import retrofit2.Callback
+import retrofit2.Response
+import retrofit2.Retrofit
+import retrofit2.converter.gson.GsonConverterFactory
 
 class MainActivity : AppCompatActivity() {
 
     private var binding: ActivityMainBinding? = null
     private lateinit var fusedLocationClient: FusedLocationProviderClient //used to get lat and long of the device.
+    private var latitude : Double = 0.0
+    private var longitude: Double = 0.0
+
+    private var mProgressDialog: Dialog? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -136,17 +149,84 @@ class MainActivity : AppCompatActivity() {
 
         fusedLocationClient.getCurrentLocation(currentLocationRequest, null)
             .addOnSuccessListener { location: Location? ->
-                Log.d("LatLong", "lat = ${location?.latitude}")
+                latitude = location!!.latitude
+                longitude = location.longitude
+                //Log.d("LatLong", "lat = ${location?.latitude}")
                 getWeatherForLocation()
             }
     }
 
+    /**
+     * This method makes the api call to the server and gets the weather data based on the location of the device.
+     */
     private fun getWeatherForLocation(){
         val networkChecker = NetworkChecker()
         if (networkChecker.isNetworkAvailable(this)){
-            Toast.makeText(this@MainActivity,"Internet is ready",Toast.LENGTH_SHORT).show()
+            val retrofit = Retrofit.Builder()
+                .addConverterFactory(GsonConverterFactory.create())
+                .baseUrl(Constants.BASE_URL)
+                .build()
+
+            val service : WeatherService = retrofit.create<WeatherService>(WeatherService::class.java) // this creates an object that maps the endpoints and can be used to make the API calls
+
+            val listCall : Call<WeatherResponse> = service.getWeather(lat = latitude, lon = longitude, appid = Constants.WEATHER_API_KEY, units = Constants.METRIC_UNIT)
+
+            showCustomProgressDialog()
+
+            listCall.enqueue(object : Callback<WeatherResponse>{
+                override fun onResponse(p0: Call<WeatherResponse>, response: Response<WeatherResponse>) {
+                    if (response.isSuccessful){
+
+                        hideProgressDialog()
+
+                        val weatherList : WeatherResponse? = response.body()//this gets the api call's body
+                        Log.i("Response Result",weatherList.toString())
+                        binding?.tvHello?.text = weatherList?.toString()
+                    } else{
+                        val responseCode = response.code()
+                        when{
+                            responseCode == 400 -> {
+                                Log.e("Error 400", "Bad Connection")
+                            }
+                            responseCode == 404 -> {
+                                Log.e("Error 404", "Not Found")
+                            }
+                            else -> {
+                                Log.e("Error", "Generic Error")
+                            }
+                        }
+                    }
+
+                    Toast.makeText(this@MainActivity,"API RESPONSE CAME",Toast.LENGTH_SHORT).show()
+                }
+
+                override fun onFailure(p0: Call<WeatherResponse>, t: Throwable) {
+                    hideProgressDialog()
+                    Log.e("Error", t.message.toString())
+                }
+
+            })
         } else {
             Toast.makeText(this@MainActivity,"No Internet Available",Toast.LENGTH_SHORT).show()
         }
+    }
+
+    /**
+     * This method shows a custom progress dialog.
+     */
+    private fun showCustomProgressDialog(){
+        mProgressDialog = Dialog(this)//dialog object
+        mProgressDialog!!.setContentView(R.layout.dialog_custom_progress) //this sets the screen to be the dialog custom progress
+        mProgressDialog!!.show() //shows the dialog
+    }
+
+    /**
+     * This method dismisses the custom progress dialog.
+     */
+    private fun hideProgressDialog(){
+        if (mProgressDialog != null){
+            mProgressDialog!!.dismiss()
+        }
+
     }
 }
