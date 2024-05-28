@@ -181,7 +181,7 @@ class MainActivity : AppCompatActivity() {
 
                         val weatherList : WeatherResponse? = response.body()//this gets the api call's body
                         Log.i("Response Result",weatherList.toString())
-                        binding?.tvHello?.text = weatherList?.toString()
+                        //binding?.tvHello?.text = weatherList?.toString()
                     } else{
                         val responseCode = response.code()
                         when{
